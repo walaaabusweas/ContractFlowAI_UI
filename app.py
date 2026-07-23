@@ -407,8 +407,12 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
                     open(custom_clauses_file.name, "rb"), 
                     "text/plain"
                 )
-                
-            response = requests.post(api_endpoint, files=files, data=data)
+
+
+            headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}  
+            response = requests.post(api_endpoint, files=files, data=data,headers=headers)
             
         if response.status_code == 200:
             return format_result_sections(response.json(), lang)
