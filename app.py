@@ -7,7 +7,7 @@ import json
 # قراءة رابط AWS Lambda من متغيرات البيئة أو استخدام الرابط المباشر كقيمة افتراضية
 BACKEND_URL = os.getenv(
     "BACKEND_URL",
-    "https://3eahhlzdrmjiwv244o2v657i64oihwuo.lambda-url.us-east-1.on.aws"
+    "https://2mi3t6rc2v4vybzhcquc52hjsu0vlrer.lambda-url.us-east-1.on.aws"
 )
 # --- CSS والتنسيقات المحدثة بالكامل ---
 custom_css = """
