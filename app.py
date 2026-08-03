@@ -400,26 +400,33 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
 
         api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload-contract"
         
-        # تجهيز الملف الرئيسي
+        # فتح الملفات بأمان
+        f_main = open(file_obj.name, 'rb')
         files = {
-            'file': (os.path.basename(file_obj.name), open(file_obj.name, 'rb'), 'application/pdf')
+            'file': (os.path.basename(file_obj.name), f_main, 'application/pdf')
         }
         data = {'contract_type': contract_type}
         
-        # تجهيز الملف المخصص في حال وجوده
+        f_custom = None
         if custom_clauses_file:
+            f_custom = open(custom_clauses_file.name, 'rb')
             files["custom_clauses_file"] = (
                 os.path.basename(custom_clauses_file.name), 
-                open(custom_clauses_file.name, "rb"), 
+                f_custom, 
                 "text/plain"
             )
 
-        # إرسال الطلب بدون إضافة User-Agent يدوي يتضارب مع AWS Signature
-        response = requests.post(api_endpoint, files=files, data=data, timeout=60)
+        # إضافة Browser User-Agent لتفادي حظر AWS Lambda / CloudFront WAF
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        response = requests.post(api_endpoint, files=files, data=data, headers=headers, timeout=60)
         
-        # إغلاق الملفات المفتوحة
-        for file_tuple in files.values():
-            file_tuple[1].close()
+        # إغلاق الملفات
+        f_main.close()
+        if f_custom:
+            f_custom.close()
             
         if response.status_code == 200:
             return format_result_sections(response.json(), lang)
@@ -428,7 +435,6 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
         
     except Exception as e:
         return [f"حدث خطأ أثناء الاتصال بالخادم: {str(e)}", "", "", "", "", "", ""]
-
 
 # --- البداية وتجهيز الواجهة الافتراضية ---
 ar_placeholder = get_placeholder_html(LABELS["ar"]["placeholder"])
