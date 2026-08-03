@@ -395,7 +395,7 @@ def format_result_sections(api_response, lang):
 
 def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
     try:
-        api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload-contract"
+        api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload"
         
         with open(file_obj.name, 'rb') as f:
             files = {'file': (os.path.basename(file_obj.name), f, 'application/pdf')}
