@@ -384,7 +384,7 @@ def format_result_sections(api_response, lang):
     overview = f'<div class="summary-card"><div class="summary-item"><span class="summary-label">{l["contract_type"]}</span><span class="summary-value">{final_report.get("contract_type", l["empty"])}</span></div><div class="summary-item"><span class="summary-label">Parties</span><div class="summary-value">{_render_value(key_terms.get("parties", l["empty"]), lang)}</div></div></div>'
     
     # نمرر البيانات المفلترة ديناميكياً للدالة
-    extracted_html = format_extracted_data_html_dynamic(filtered_data, lang)
+    extracted_html = format_extracted_data_html(filtered_data, lang)
     clauses = format_clauses_html(final_report.get("extracted_important_clauses", []), lang)
     specific_html = format_specific_clauses_html(specific_data, lang)
     missing = format_missing_clauses_html(final_report.get("missing_clauses", []), lang)
@@ -395,7 +395,7 @@ def format_result_sections(api_response, lang):
 
 def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
     try:
-        api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload"
+        api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload-contract"
         
         with open(file_obj.name, 'rb') as f:
             files = {'file': (os.path.basename(file_obj.name), f, 'application/pdf')}
