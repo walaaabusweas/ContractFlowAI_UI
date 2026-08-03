@@ -395,29 +395,37 @@ def format_result_sections(api_response, lang):
 
 def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
     try:
+        if not file_obj:
+            return ["الرجاء رفع ملف العقد أولاً.", "", "", "", "", "", ""]
+
         api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload-contract"
         
-        with open(file_obj.name, 'rb') as f:
-            files = {'file': (os.path.basename(file_obj.name), f, 'application/pdf')}
-            data = {'contract_type': contract_type}
-            
-            if custom_clauses_file:
-                files["custom_clauses_file"] = (
-                    os.path.basename(custom_clauses_file.name), 
-                    open(custom_clauses_file.name, "rb"), 
-                    "text/plain"
-                )
+        # تجهيز الملف الرئيسي
+        files = {
+            'file': (os.path.basename(file_obj.name), open(file_obj.name, 'rb'), 'application/pdf')
+        }
+        data = {'contract_type': contract_type}
+        
+        # تجهيز الملف المخصص في حال وجوده
+        if custom_clauses_file:
+            files["custom_clauses_file"] = (
+                os.path.basename(custom_clauses_file.name), 
+                open(custom_clauses_file.name, "rb"), 
+                "text/plain"
+            )
 
-
-            headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-}  
-            response = requests.post(api_endpoint, files=files, data=data,headers=headers)
+        # إرسال الطلب بدون إضافة User-Agent يدوي يتضارب مع AWS Signature
+        response = requests.post(api_endpoint, files=files, data=data, timeout=60)
+        
+        # إغلاق الملفات المفتوحة
+        for file_tuple in files.values():
+            file_tuple[1].close()
             
         if response.status_code == 200:
             return format_result_sections(response.json(), lang)
             
         return [f"Error {response.status_code}: {response.text}", "", "", "", "", "", ""]
+        
     except Exception as e:
         return [f"حدث خطأ أثناء الاتصال بالخادم: {str(e)}", "", "", "", "", "", ""]
 
