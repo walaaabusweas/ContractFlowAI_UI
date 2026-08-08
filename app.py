@@ -11,7 +11,7 @@ BACKEND_URL = os.getenv(
 )
 # --- CSS والتنسيقات المحدثة بالكامل ---
 custom_css = """
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght=400;600;700;800&family=Inter:wght=400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;600;700&display=swap');
 
 /* الخلفية العامة للمنصة بلمسة كحلية ملكية عميقة ومريحة جداً */
 .gradio-container { 
@@ -347,7 +347,6 @@ def format_result_sections(api_response, lang):
     # 1. البحث الديناميكي عن مفتاح البنود المخصصة داخل القاموس
     specific_key = None
     for k in data.keys():
-        # البحث عن أي مفتاح يحتوي على "specific" أو "مخصصة" أو "مخصص"
         if "specific" in k.lower() or "مخصصة" in k or "مخصص" in k:
             specific_key = k
             break
@@ -356,16 +355,18 @@ def format_result_sections(api_response, lang):
     specific_data = {}
     if specific_key:
         specific_data = data.get(specific_key, {})
-        # إذا كانت القيمة الراجعة عبارة عن نصوص وليست قاموس فرعي، نحولها لقاموس لتسهيل العرض
         if not isinstance(specific_data, dict):
             specific_data = {specific_key: specific_data}
             
-    # 3. معالجة البيانات المستخرجة العامة واستثناء مفتاح البنود المخصصة المكتشف ديناميكياً
+    # 3. معالجة البيانات المستخرجة العامة واستثناء مفتاح البنود المخصصة
     filtered_data = {k: v for k, v in data.items() if k != specific_key}
     
-    # --- معالجة الملاحظات القانونية ---
+    # --- معالجة الملاحظات القانونية بأمان تام لتفادي خطأ الـ dict ---
     processed_notes = ""
-    if initial_notes and initial_notes != l["no_notes"]:
+    if initial_notes:
+        if isinstance(initial_notes, dict):
+            initial_notes = str(initial_notes)
+        
         cleaned_notes = initial_notes.replace("▪", "").strip()
         if "." in cleaned_notes:
             sentences = [s.strip() for s in cleaned_notes.split(".") if s.strip()]
@@ -383,7 +384,6 @@ def format_result_sections(api_response, lang):
     # 4. بناء الـ HTML للواجهات
     overview = f'<div class="summary-card"><div class="summary-item"><span class="summary-label">{l["contract_type"]}</span><span class="summary-value">{final_report.get("contract_type", l["empty"])}</span></div><div class="summary-item"><span class="summary-label">Parties</span><div class="summary-value">{_render_value(key_terms.get("parties", l["empty"]), lang)}</div></div></div>'
     
-    # نمرر البيانات المفلترة ديناميكياً للدالة
     extracted_html = format_extracted_data_html(filtered_data, lang)
     clauses = format_clauses_html(final_report.get("extracted_important_clauses", []), lang)
     specific_html = format_specific_clauses_html(specific_data, lang)
@@ -400,7 +400,6 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
 
         api_endpoint = f"{BACKEND_URL.rstrip('/')}/upload-contract"
         
-        # فتح الملفات بأمان
         f_main = open(file_obj.name, 'rb')
         files = {
             'file': (os.path.basename(file_obj.name), f_main, 'application/pdf')
@@ -416,14 +415,12 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
                 "text/plain"
             )
 
-        # إضافة Browser User-Agent لتفادي حظر AWS Lambda / CloudFront WAF
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
         response = requests.post(api_endpoint, files=files, data=data, headers=headers, timeout=150)
         
-        # إغلاق الملفات
         f_main.close()
         if f_custom:
             f_custom.close()
@@ -444,11 +441,9 @@ en_md_placeholder = get_placeholder_markdown(LABELS["en"]["placeholder"])
 
 with gr.Blocks(title="ContractFlow AI", css=custom_css, theme=gr.themes.Soft()) as demo:
     
-    # 1. زر تبديل اللغة العائم
     with gr.Row(variant="compact", elem_classes="language-switch-container"):
         lang_selector = gr.Radio(choices=["ar", "en"], value="ar", show_label=False, elem_classes="language-switch")
     
-    # 2. الهيدر الرئيسي والوصف
     with gr.Column():
         description_text = gr.Markdown(
             f"""
@@ -459,7 +454,6 @@ with gr.Blocks(title="ContractFlow AI", css=custom_css, theme=gr.themes.Soft()) 
             """
         )
 
-    # 3. صندوق رفع الملفات والمدخلات
     with gr.Column(elem_classes="rtl") as main_container:
         with gr.Row():
             input_file = gr.File(label=LABELS["ar"]["file_label"], scale=0.5, height=200)
@@ -468,7 +462,6 @@ with gr.Blocks(title="ContractFlow AI", css=custom_css, theme=gr.themes.Soft()) 
 
         submit_btn = gr.Button(LABELS["ar"]["submit"], variant="primary")
         
-        # تفعيل المظهر الافتراضي الجميل لكل تابة وهي فارغة
         with gr.Tabs() as tab_group:
             with gr.TabItem(LABELS["ar"]["tabs"][0]) as tab1: overview_output = gr.HTML(value=ar_placeholder)
             with gr.TabItem(LABELS["ar"]["tabs"][1]) as tab2: extracted_output = gr.HTML(value=ar_placeholder)
@@ -476,11 +469,9 @@ with gr.Blocks(title="ContractFlow AI", css=custom_css, theme=gr.themes.Soft()) 
             with gr.TabItem(LABELS["ar"]["tabs"][3]) as tab4: specific_output = gr.HTML(value=ar_placeholder)
             with gr.TabItem(LABELS["ar"]["tabs"][4]) as tab5: missing_output = gr.HTML(value=ar_placeholder)
             with gr.TabItem(LABELS["ar"]["tabs"][5]) as tab6: risks_output = gr.HTML(value=ar_placeholder)
-            # تم تعديل هذا السطر ليكون gr.Markdown بدلاً من gr.HTML وحقنه بـ CSS مخصص
             with gr.TabItem(LABELS["ar"]["tabs"][6]) as tab7: 
                 legal_output = gr.Markdown(value=ar_md_placeholder, elem_classes="legal-markdown-container")
 
-    # تحديث اللغات وواجهات التلميح الفارغ ديناميكياً عند تحويل اللغة قبل بدء التحليل
     def update_ui(lang):
         direction_class = "rtl" if lang == "ar" else "ltr"
         l = LABELS[lang]
@@ -501,11 +492,10 @@ with gr.Blocks(title="ContractFlow AI", css=custom_css, theme=gr.themes.Soft()) 
             gr.update(label=l["tabs"][2]), gr.update(label=l["tabs"][3]), 
             gr.update(label=l["tabs"][4]), gr.update(label=l["tabs"][5]), 
             gr.update(label=l["tabs"][6]),
-            # تحديث محتوى التابات الفارغة فوراً باللغة الجديدة
             gr.update(value=current_placeholder), gr.update(value=current_placeholder),
             gr.update(value=current_placeholder), gr.update(value=current_placeholder),
             gr.update(value=current_placeholder), gr.update(value=current_placeholder),
-            gr.update(value=current_md_placeholder) # المرجعية القانونية كـ Markdown
+            gr.update(value=current_md_placeholder)
         )
 
     lang_selector.change(
