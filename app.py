@@ -421,7 +421,7 @@ def analyze_contract_ui(file_obj, custom_clauses_file, contract_type, lang):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
 
-        response = requests.post(api_endpoint, files=files, data=data, headers=headers, timeout=60)
+        response = requests.post(api_endpoint, files=files, data=data, headers=headers, timeout=150)
         
         # إغلاق الملفات
         f_main.close()
